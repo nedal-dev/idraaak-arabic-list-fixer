@@ -66,6 +66,8 @@ for language in ["en", "ar"]:
             raise RuntimeError("App/plugin did not become ready: " + last_ready)
         # Explicitly enable this locally built plugin in the disposable test vault.
         # App startup can keep community plugins restricted despite app.json.
+        # The renderer reads its locale from localStorage, not the main config.
+        evaluate('localStorage.setItem("language", ' + json.dumps(language) + '); "LOCALE_SET"', "LOCALE_SET")
         unrestricted = cli("plugins:restrict", "off")
         time.sleep(2)  # Let the app finish the requested vault reload.
         enabled = cli("plugin:enable", "id=" + plugin_id)
@@ -86,7 +88,12 @@ for language in ["en", "ar"]:
         labels = {"cancel": "إلغاء", "apply": "تطبيق الإصلاحات"} if language == "ar" else {"cancel": "Cancel", "apply": "Apply fixes"}
         finish = r'''(() => {
           const original = editor.getValue();
-          const button = text => Array.from(document.querySelectorAll('.idraaak-list-fixer button')).find(b => b.textContent === text);
+          const button = text => {
+            const buttons = Array.from(document.querySelectorAll('.idraaak-list-fixer button'));
+            const match = buttons.find(b => b.textContent === text);
+            if (!match) throw Error('Missing button ' + text + '; actual: ' + buttons.map(b => b.textContent).join(', '));
+            return match;
+          };
           const labels = LABELS;
           button(labels.cancel).click();
           if (editor.getValue() !== original) throw Error('Cancel changed text');
