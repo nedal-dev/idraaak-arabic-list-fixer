@@ -1,0 +1,28 @@
+name: Test actual Obsidian app
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Get checksum-verified official app
+        shell: bash
+        run: |
+          curl --fail --location --retry 2 https://github.com/obsidianmd/obsidian-releases/releases/download/v1.14.5/obsidian-1.14.5.tar.gz -o "$RUNNER_TEMP/obsidian.tar.gz"
+          echo "1bc6547c889d7d02c3f2c5b55884cba14980bfac4ada32c0bdc6ec6db542aaf8  $RUNNER_TEMP/obsidian.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/obsidian.tar.gz" -C "$RUNNER_TEMP"
+      - name: Exercise the real app in English and Arabic
+        run: xvfb-run -a python3 automation/native-smoke.py "$RUNNER_TEMP/obsidian-1.14.5/obsidian" "$RUNNER_TEMP/obsidian-1.14.5/obsidian-cli"
+      - name: Attach genuine test evidence to the development release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload 0.1.0 validation/native/preview-en.png validation/native/preview-ar.png validation/native/smoke-result.json
