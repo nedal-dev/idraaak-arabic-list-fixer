@@ -1,0 +1,9 @@
+.idraaak-list-fixer { width: min(760px, 95vw); }
+.idraaak-list-fixer .idraaak-list-option { display: flex; align-items: center; gap: 0.6em; }
+.idraaak-list-fixer .idraaak-list-preview { max-height: 48vh; overflow: auto; }
+.idraaak-list-fixer .idraaak-list-change { padding-block: 0.5em; border-bottom: 1px solid var(--background-modifier-border); }
+.idraaak-list-fixer .idraaak-list-change h3 { margin-block: 0.25em 0.5em; font-size: var(--font-ui-small); }
+.idraaak-list-fixer .idraaak-list-change pre { margin-block: 0.25em 0.75em; padding: 0.7em; white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-text); background: var(--background-secondary); border-radius: var(--radius-s); unicode-bidi: plaintext; }
+.idraaak-list-fixer .idraaak-list-label { color: var(--text-muted); font-size: var(--font-ui-small); }
+.idraaak-list-fixer .idraaak-list-count { font-weight: var(--font-semibold); }
+.idraaak-list-fixer .idraaak-list-actions { display: flex; gap: 0.75em; justify-content: flex-end; margin-top: 1em; }

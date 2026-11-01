@@ -1,0 +1,10 @@
+{
+  "id": "idraaak-arabic-list-fixer",
+  "name": "Idraaak Arabic List Fixer",
+  "version": "0.1.0",
+  "minAppVersion": "1.14.5",
+  "description": "Preview and convert Arabic-Indic numbered list markers into native Markdown without changing item text.",
+  "author": "Idraaak",
+  "authorUrl": "https://idraaak.com/",
+  "isDesktopOnly": false
+}
