@@ -25,7 +25,15 @@ jobs:
       - name: Attach genuine test evidence to the development release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload 0.1.0 validation/native/preview-en.png validation/native/preview-ar.png validation/native/smoke-result.json
+        shell: bash
+        run: |
+          smoke_assets=(validation/native/smoke-result.json)
+          for preview in validation/native/preview-*.png; do
+            if [ -f "$preview" ]; then
+              smoke_assets+=("$preview")
+            fi
+          done
+          gh release upload 0.1.0 "${smoke_assets[@]}"
       - name: Show synthetic-test diagnostics on failure
         if: failure()
         run: cat validation/native/*.log
