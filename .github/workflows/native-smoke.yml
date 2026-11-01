@@ -26,3 +26,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload 0.1.0 validation/native/preview-en.png validation/native/preview-ar.png validation/native/smoke-result.json
+      - name: Show synthetic-test diagnostics on failure
+        if: failure()
+        run: cat validation/native/*.log

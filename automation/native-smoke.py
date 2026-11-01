@@ -33,6 +33,9 @@ for language in ["en", "ar"]:
     }))
     env = os.environ.copy()
     env["XDG_CONFIG_HOME"] = str(base / "config")
+    runtime = base / "runtime"
+    runtime.mkdir(mode=0o700)
+    env["XDG_RUNTIME_DIR"] = str(runtime)
     log = (output / f"app-{language}.log").open("w")
     app = subprocess.Popen([app_binary, "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"], env=env, stdout=log, stderr=log)
 
@@ -46,18 +49,21 @@ for language in ["en", "ar"]:
         return response.stdout.strip()
 
     try:
+        last_ready = "No CLI response"
         for attempt in range(40):
             time.sleep(1)
             if app.poll() is not None:
                 raise RuntimeError(f"App exited: {(output / f'app-{language}.log').read_text()[-6000:]}")
             try:
                 ready = cli("eval", 'code=JSON.stringify({ready:app.workspace.layoutReady,plugin:!!app.plugins.getPlugin("idraaak-arabic-list-fixer")})')
+                last_ready = ready.stdout + "\n" + ready.stderr
+                (output / f"cli-ready-{language}.log").write_text(last_ready)
                 if '"ready":true' in ready.stdout and '"plugin":true' in ready.stdout:
                     break
             except subprocess.TimeoutExpired:
                 continue
         else:
-            raise RuntimeError("App/plugin did not become ready")
+            raise RuntimeError("App/plugin did not become ready: " + last_ready)
         prepare = r'''(async () => {
           const api = require('obsidian');
           await app.workspace.getLeaf(false).openFile(app.vault.getAbstractFileByPath('Arabic.md'));
