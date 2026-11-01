@@ -58,12 +58,18 @@ for language in ["en", "ar"]:
                 ready = cli("eval", 'code=JSON.stringify({ready:app.workspace.layoutReady,plugin:!!app.plugins.getPlugin("idraaak-arabic-list-fixer")})')
                 last_ready = ready.stdout + "\n" + ready.stderr
                 (output / f"cli-ready-{language}.log").write_text(last_ready)
-                if '"ready":true' in ready.stdout and '"plugin":true' in ready.stdout:
+                if '"ready":true' in ready.stdout:
                     break
             except subprocess.TimeoutExpired:
                 continue
         else:
             raise RuntimeError("App/plugin did not become ready: " + last_ready)
+        # Explicitly enable this locally built plugin in the disposable test vault.
+        # App startup can keep community plugins restricted despite app.json.
+        unrestricted = cli("plugins:restrict", "off")
+        enabled = cli("plugin:enable", "id=" + plugin_id)
+        print("Test-vault plugin setup:", unrestricted.stdout.strip(), enabled.stdout.strip(), flush=True)
+        evaluate('app.plugins.getPlugin("idraaak-arabic-list-fixer") ? "PLUGIN_READY" : "PLUGIN_NOT_LOADED"', "PLUGIN_READY")
         prepare = r'''(async () => {
           const api = require('obsidian');
           await app.workspace.getLeaf(false).openFile(app.vault.getAbstractFileByPath('Arabic.md'));
