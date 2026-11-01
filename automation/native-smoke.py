@@ -71,9 +71,9 @@ for language in ["en", "ar"]:
         print("Test-vault plugin setup:", unrestricted.stdout.strip(), enabled.stdout.strip(), flush=True)
         evaluate('app.plugins.getPlugin("idraaak-arabic-list-fixer") ? "PLUGIN_READY" : "PLUGIN_NOT_LOADED"', "PLUGIN_READY")
         prepare = r'''(async () => {
-          const api = require('obsidian');
-          await app.workspace.getLeaf(false).openFile(app.vault.getAbstractFileByPath('Arabic.md'));
-          const editor = app.workspace.getActiveViewOfType(api.MarkdownView).editor;
+          const leaf = app.workspace.getLeaf(false);
+          await leaf.openFile(app.vault.getAbstractFileByPath('Arabic.md'));
+          const editor = leaf.view.editor;
           editor.setValue('١) افتح الإعدادات WiFi ٢٠٢٦\n٢) راجع [الموقع](https://example.org/١)\n\n```text\n١) code\n٢) code\n```');
           app.commands.executeCommandById('idraaak-arabic-list-fixer:preview-note');
           const modal = document.querySelector('.idraaak-list-fixer');
@@ -88,7 +88,7 @@ for language in ["en", "ar"]:
             raise RuntimeError("Screenshot was not saved: " + shot.stderr)
         labels = {"cancel": "إلغاء", "apply": "تطبيق الإصلاحات"} if language == "ar" else {"cancel": "Cancel", "apply": "Apply fixes"}
         finish = r'''(() => {
-          const editor = app.workspace.getActiveViewOfType(require('obsidian').MarkdownView).editor;
+          const editor = app.workspace.getLeavesOfType('markdown').find(leaf => leaf.view.file?.path === 'Arabic.md').view.editor;
           const original = editor.getValue();
           const button = text => Array.from(document.querySelectorAll('.idraaak-list-fixer button')).find(b => b.textContent === text);
           const labels = LABELS;
