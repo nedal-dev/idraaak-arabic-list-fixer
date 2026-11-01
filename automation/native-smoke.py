@@ -67,6 +67,7 @@ for language in ["en", "ar"]:
         # Explicitly enable this locally built plugin in the disposable test vault.
         # App startup can keep community plugins restricted despite app.json.
         unrestricted = cli("plugins:restrict", "off")
+        time.sleep(2)  # Let the app finish the requested vault reload.
         enabled = cli("plugin:enable", "id=" + plugin_id)
         print("Test-vault plugin setup:", unrestricted.stdout.strip(), enabled.stdout.strip(), flush=True)
         evaluate('app.plugins.getPlugin("idraaak-arabic-list-fixer") ? "PLUGIN_READY" : "PLUGIN_NOT_LOADED"', "PLUGIN_READY")
@@ -75,22 +76,15 @@ for language in ["en", "ar"]:
           await leaf.openFile(app.vault.getAbstractFileByPath('Arabic.md'));
           const editor = leaf.view.editor;
           editor.setValue('١) افتح الإعدادات WiFi ٢٠٢٦\n٢) راجع [الموقع](https://example.org/١)\n\n```text\n١) code\n٢) code\n```');
+          await new Promise(resolve => setTimeout(resolve, 600));
           app.commands.executeCommandById('idraaak-arabic-list-fixer:preview-note');
           const modal = document.querySelector('.idraaak-list-fixer');
           if (!modal || modal.querySelectorAll('pre').length !== 4) throw Error('Preview mismatch');
           if (editor.getValue().startsWith('1.')) throw Error('Preview edited the note');
           return 'PREVIEW_READY';
         })()'''
-        evaluate(prepare, "PREVIEW_READY")
-        screenshot = output / f"preview-{language}.png"
-        time.sleep(0.5)
-        shot = cli("dev:screenshot", "path=" + str(screenshot))
-        if shot.returncode != 0 or not screenshot.exists() or screenshot.stat().st_size < 1000:
-            print("Optional screenshot unavailable:", shot.stdout[:1000], shot.stderr[:1000], flush=True)
-            screenshot.unlink(missing_ok=True)
         labels = {"cancel": "إلغاء", "apply": "تطبيق الإصلاحات"} if language == "ar" else {"cancel": "Cancel", "apply": "Apply fixes"}
         finish = r'''(() => {
-          const editor = app.workspace.getLeavesOfType('markdown').find(leaf => leaf.view.file?.path === 'Arabic.md').view.editor;
           const original = editor.getValue();
           const button = text => Array.from(document.querySelectorAll('.idraaak-list-fixer button')).find(b => b.textContent === text);
           const labels = LABELS;
@@ -113,9 +107,19 @@ for language in ["en", "ar"]:
           app.commands.executeCommandById('idraaak-arabic-list-fixer:preview-selection');
           button(labels.apply).click();
           if (editor.getValue() !== '١) أ\n2. ب\n٣) ج') throw Error('Selection scope failed');
+          editor.setValue(original);
+          app.commands.executeCommandById('idraaak-arabic-list-fixer:preview-note');
           return 'NATIVE_SMOKE_OK';
         })()'''.replace("LABELS", json.dumps(labels, ensure_ascii=False))
-        evaluate(finish, "NATIVE_SMOKE_OK")
+        # Keep the same real editor reference throughout one CLI evaluation.
+        finish_body = finish.removeprefix("(() => {").removesuffix("})()")
+        evaluate(prepare.replace("return 'PREVIEW_READY';", finish_body), "NATIVE_SMOKE_OK")
+        screenshot = output / f"preview-{language}.png"
+        time.sleep(1)
+        shot = cli("dev:screenshot", "path=" + str(screenshot))
+        if shot.returncode != 0 or not screenshot.exists() or screenshot.stat().st_size < 1000:
+            print("Optional screenshot unavailable:", shot.stdout[:1000], shot.stderr[:1000], flush=True)
+            screenshot.unlink(missing_ok=True)
         results.append({"language": language, "version": "1.14.5", "result": "passed", "preview": screenshot.name if screenshot.exists() else None})
         print(json.dumps(results[-1]), flush=True)
     finally:
