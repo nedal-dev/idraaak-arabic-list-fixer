@@ -1,0 +1,42 @@
+name: Validate and publish release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install locked development dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build and test
+        run: npm test
+      - name: Check official plugin guidelines
+        run: npm run lint
+      - name: Verify reproducible committed bundle
+        run: git diff --exit-code -- main.js
+      - name: Publish matching release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          release_version=$(node -p "require('./manifest.json').version")
+          if gh release view "$release_version" > /dev/null 2>&1; then
+            echo "Release already exists; refusing a duplicate."
+            exit 1
+          fi
+          gh release create "$release_version" main.js manifest.json styles.css \
+            --target "$GITHUB_SHA" \
+            --title "Idraaak Arabic List Fixer $release_version" \
+            --notes-file RELEASE.md
